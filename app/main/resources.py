@@ -106,3 +106,23 @@ class Authenticate(Resource):
                 "message": "",
                 "result": err.details
             }
+
+class LatestRecordSet(Resource):
+    def get(self, amount):
+        mongo = MongoClient(host=db_config[config_name]["host"], port=db_config[config_name]["port"])
+        try:
+            mongo[db_config[config_name]["db"]].authenticate(request.authorization.username,
+                                                             request.authorization.password)
+            last_record = mongo[db_config[config_name]["db"]]\
+                [db_config[config_name]["collection"]].find().sort("_id", -1)[:amount]
+            return {
+                       "err": "False",
+                       "message": "Successfully get data",
+                       "result": {"data": dumps(last_record)}
+            }
+        except OperationFailure, err:
+            return {
+                "err": "True",
+                "message": "Failed getting data",
+                "result": err.details
+            }
