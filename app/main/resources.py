@@ -1,4 +1,4 @@
-from flask import request
+from flask import request, make_response
 from flask_restful import Resource
 from bson.json_util import loads, dumps
 from flask_pymongo import MongoClient
@@ -72,5 +72,37 @@ class Record(Resource):
             return {
                 "err": "True",
                 "message": "Failed post data",
+                "result": err.details
+            }
+
+class Authenticate(Resource):
+    def options(self):
+        resp = make_response("")
+        resp.headers.extend({
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET",
+                "Access-Control-Allow-Headers": "Authorization"
+            })
+        return resp
+
+    def get(self):
+        mongo = MongoClient(host=db_config[config_name]["host"], port=db_config[config_name]["port"])
+        try:
+            auth = mongo[db_config[config_name]["db"]].authenticate(request.authorization.username,
+                                                             request.authorization.password)
+            data = {
+                "err": "False",
+                "message": "Successfully auth",
+                "result": {"data": auth, "ack": auth}
+            }
+            resp = make_response(dumps(data))
+            resp.headers.extend({
+                "Access-Control-Allow-Origin": "*",
+            })
+            return resp
+        except OperationFailure, err:
+            return {
+                "err": "True",
+                "message": "",
                 "result": err.details
             }
