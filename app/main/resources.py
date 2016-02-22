@@ -7,7 +7,7 @@ from run import config_name
 from config import db_config
 
 class BaseClassWithCORS(Resource):
-    def options(self):
+    def options(self, **kwargs):
         resp = make_response("")
         resp.headers.extend({
                 "Access-Control-Allow-Origin": "*",
