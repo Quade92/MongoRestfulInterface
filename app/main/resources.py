@@ -6,14 +6,15 @@ from pymongo.errors import OperationFailure
 from run import config_name
 from config import db_config
 
+
 class BaseClassWithCORS(Resource):
     def options(self, **kwargs):
         resp = make_response("")
         resp.headers.extend({
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, POST",
-                "Access-Control-Allow-Headers": "Authorization"
-            })
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST",
+            "Access-Control-Allow-Headers": "Authorization"
+        })
         return resp
 
 
@@ -26,7 +27,7 @@ class RecordSeries(BaseClassWithCORS):
             # QUERY: return the latest record
             # TODO records length need some restriction maybe
             records = mongo[db_config[config_name]["db"]][db_config[config_name]["collection"]].find(
-                    {"$and": [{"timestamp": {"$gt": start}}, {"timestamp": {"$lt": end}}]}).sort("_id", 1)
+                {"$and": [{"timestamp": {"$gt": start}}, {"timestamp": {"$lt": end}}]}).sort("_id", 1)
             records = [record for record in records]
             data = {
                 "err": "False",
@@ -53,7 +54,7 @@ class LatestRecord(BaseClassWithCORS):
             mongo[db_config[config_name]["db"]].authenticate(request.authorization.username,
                                                              request.authorization.password)
             # QUERY: return the latest record
-            latest_record = mongo[db_config[config_name]["db"]]\
+            latest_record = mongo[db_config[config_name]["db"]] \
                 [db_config[config_name]["collection"]].find().sort("_id", -1)[0]
             data = {
                 "err": "False",
@@ -81,12 +82,12 @@ class Record(BaseClassWithCORS):
                                                              request.authorization.password)
             data = request.data
             l = loads(data)
-            result = mongo[db_config[config_name]["db"]]\
+            result = mongo[db_config[config_name]["db"]] \
                 [db_config[config_name]["collection"]].insert_one(l["data"])
             data = {
                 "err": "False",
-                "message": "Successfully auth",
-                "result": result
+                "message": "Successfully inserted",
+                "result": result.inserted_id
             }
             resp = make_response(dumps(data))
             resp.headers.extend({
@@ -100,12 +101,13 @@ class Record(BaseClassWithCORS):
                 "result": err.details
             }
 
+
 class Authenticate(BaseClassWithCORS):
     def get(self):
         mongo = MongoClient(host=db_config[config_name]["host"], port=db_config[config_name]["port"])
         try:
             auth = mongo[db_config[config_name]["db"]].authenticate(request.authorization.username,
-                                                             request.authorization.password)
+                                                                    request.authorization.password)
             data = {
                 "err": "False",
                 "message": "Successfully auth",
@@ -123,18 +125,45 @@ class Authenticate(BaseClassWithCORS):
                 "result": err.details
             }
 
+
 class LatestRecordSet(BaseClassWithCORS):
     def get(self, amount):
         mongo = MongoClient(host=db_config[config_name]["host"], port=db_config[config_name]["port"])
         try:
             mongo[db_config[config_name]["db"]].authenticate(request.authorization.username,
                                                              request.authorization.password)
-            latest_records = mongo[db_config[config_name]["db"]]\
-                [db_config[config_name]["collection"]].find().sort("_id", -1)[:amount]
+            latest_records = mongo[db_config[config_name]["db"]] \
+                                 [db_config[config_name]["collection"]].find().sort("_id", -1)[:amount]
             data = {
                 "err": "False",
                 "message": "Successfully auth",
                 "result": latest_records
+            }
+            resp = make_response(dumps(data))
+            resp.headers.extend({
+                "Access-Control-Allow-Origin": "*"
+            })
+            return resp
+        except OperationFailure, err:
+            return {
+                "err": "True",
+                "message": "Failed getting data",
+                "result": err.details
+            }
+
+
+class LatestRecordGivenTimestamp(BaseClassWithCORS):
+    def get(self, timestamp):
+        mongo = MongoClient(host=db_config[config_name]["host"], port=db_config[config_name]["port"])
+        try:
+            mongo[db_config[config_name]["db"]].authenticate(request.authorization.username,
+                                                             request.authorization.password)
+            latest_record = mongo[db_config[config_name]["db"]][db_config[config_name]["collection"]]. \
+                find({"timestamp": {"$lt": timestamp}}).sort("_id", -1)[0]
+            data = {
+                "err": "False",
+                "message": "Successfully auth",
+                "result": latest_record
             }
             resp = make_response(dumps(data))
             resp.headers.extend({
