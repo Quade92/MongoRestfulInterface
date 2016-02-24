@@ -176,3 +176,29 @@ class LatestRecordGivenTimestamp(BaseClassWithCORS):
                 "message": "Failed getting data",
                 "result": err.details
             }
+
+
+class LatestRecordSetGivenTimestamp(BaseClassWithCORS):
+    def get(self, timestamp, amount):
+        mongo = MongoClient(host=db_config[config_name]["host"], port=db_config[config_name]["port"])
+        try:
+            mongo[db_config[config_name]["db"]].authenticate(request.authorization.username,
+                                                             request.authorization.password)
+            latest_record_set = mongo[db_config[config_name]["db"]][db_config[config_name]["collection"]]. \
+                find({"timestamp": {"$lt": timestamp}}).sort("_id", -1)[:amount]
+            data = {
+                "err": "False",
+                "message": "Successfully auth",
+                "result": latest_record_set
+            }
+            resp = make_response(dumps(data))
+            resp.headers.extend({
+                "Access-Control-Allow-Origin": "*"
+            })
+            return resp
+        except OperationFailure, err:
+            return {
+                "err": "True",
+                "message": "Failed getting data",
+                "result": err.details
+            }
