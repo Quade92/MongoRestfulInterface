@@ -27,7 +27,7 @@ class RecordSeries(BaseClassWithCORS):
             # QUERY: return the latest record
             # TODO records length need some restriction maybe
             records = mongo[db_config[config_name]["db"]][db_config[config_name]["collection"]].find(
-                {"$and": [{"timestamp": {"$gt": start}}, {"timestamp": {"$lt": end}}]}).sort("_id", -1)
+                {"$and": [{"timestamp": {"$gte": start}}, {"timestamp": {"$lte": end}}]}).sort("_id", -1)
             records = [record for record in records]
             data = {
                 "err": "False",
@@ -159,7 +159,7 @@ class LatestRecordGivenTimestamp(BaseClassWithCORS):
             mongo[db_config[config_name]["db"]].authenticate(request.authorization.username,
                                                              request.authorization.password)
             latest_record = mongo[db_config[config_name]["db"]][db_config[config_name]["collection"]]. \
-                find({"timestamp": {"$lt": timestamp}}).sort("_id", -1)[0]
+                find({"timestamp": {"$lte": timestamp}}).sort("_id", -1)[0]
             data = {
                 "err": "False",
                 "message": "Successfully auth",
@@ -185,7 +185,7 @@ class LatestRecordSetGivenTimestamp(BaseClassWithCORS):
             mongo[db_config[config_name]["db"]].authenticate(request.authorization.username,
                                                              request.authorization.password)
             latest_record_set = mongo[db_config[config_name]["db"]][db_config[config_name]["collection"]]. \
-                find({"timestamp": {"$lt": timestamp}}).sort("_id", -1)[:amount]
+                find({"timestamp": {"$lte": timestamp}}).sort("_id", -1)[:amount]
             data = {
                 "err": "False",
                 "message": "Successfully auth",
