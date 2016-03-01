@@ -27,7 +27,7 @@ class RecordSeries(BaseClassWithCORS):
             # QUERY: return the latest record
             # TODO records length need some restriction maybe
             records = mongo[db_config[config_name]["db"]][db_config[config_name]["collection"]].find(
-                {"$and": [{"timestamp": {"$gt": start}}, {"timestamp": {"$lt": end}}]}).sort("_id", 1)
+                {"$and": [{"timestamp": {"$gt": start}}, {"timestamp": {"$lt": end}}]}).sort("_id", -1)
             records = [record for record in records]
             data = {
                 "err": "False",
