@@ -4,7 +4,7 @@ from bson.json_util import loads, dumps
 from flask_pymongo import MongoClient
 from pymongo.errors import OperationFailure
 from run import config_name
-from config import db_config
+from config import db_config, transform_data
 
 
 class BaseClassWithCORS(Resource):
@@ -26,7 +26,7 @@ class RecordSeries(BaseClassWithCORS):
                                                              request.authorization.password)
             # QUERY: return the latest record
             # TODO records length need some restriction maybe
-            records = mongo[db_config[config_name]["db"]][db_config[config_name]["collection"]].find(
+            records = mongo[db_config[config_name]["db"]][db_config[config_name]["trans_data_col"]].find(
                 {"$and": [{"timestamp": {"$gte": start}}, {"timestamp": {"$lte": end}}]}).sort("_id", -1)
             records = [record for record in records]
             data = {
@@ -55,7 +55,7 @@ class LatestRecord(BaseClassWithCORS):
                                                              request.authorization.password)
             # QUERY: return the latest record
             latest_record = mongo[db_config[config_name]["db"]] \
-                [db_config[config_name]["collection"]].find().sort("_id", -1)[0]
+                [db_config[config_name]["trans_data_col"]].find().sort("_id", -1)[0]
             data = {
                 "err": "False",
                 "message": "Successfully auth",
@@ -81,15 +81,23 @@ class Record(BaseClassWithCORS):
             mongo[db_config[config_name]["db"]].authenticate(request.authorization.username,
                                                              request.authorization.password)
             data = request.data
-            l = loads(data)
-            result = mongo[db_config[config_name]["db"]] \
-                [db_config[config_name]["collection"]].insert_one(l["data"])
-            data = {
+            # TODO: insert transformed data here
+            raw_req = loads(data)
+            raw_json = raw_req["data"]
+            trans_json = transform_data(raw_json)
+            raw_insert_result = mongo[db_config[config_name]["db"]]\
+                [db_config[config_name]["raw_data_col"]].insert_one(raw_json)
+            trans_insert_result = mongo[db_config[config_name]["db"]]\
+                [db_config[config_name]["trans_data_col"]].insert_one(trans_json)
+            resp_data = {
                 "err": "False",
                 "message": "Successfully inserted",
-                "result": result.inserted_id
+                "result": {
+                    "raw_insert_id": raw_insert_result.inserted_id,
+                    "trans_insert_id": trans_insert_result.inserted_id
+                }
             }
-            resp = make_response(dumps(data))
+            resp = make_response(dumps(resp_data))
             resp.headers.extend({
                 "Access-Control-Allow-Origin": "*"
             })
@@ -133,7 +141,8 @@ class LatestRecordSet(BaseClassWithCORS):
             mongo[db_config[config_name]["db"]].authenticate(request.authorization.username,
                                                              request.authorization.password)
             latest_records = mongo[db_config[config_name]["db"]] \
-                                 [db_config[config_name]["collection"]].find().sort("_id", -1)[:amount]
+                                 [db_config[config_name]["trans_data_col"]]\
+                                 .find().sort("_id", -1)[:amount]
             data = {
                 "err": "False",
                 "message": "Successfully auth",
@@ -158,7 +167,7 @@ class LatestRecordGivenTimestamp(BaseClassWithCORS):
         try:
             mongo[db_config[config_name]["db"]].authenticate(request.authorization.username,
                                                              request.authorization.password)
-            latest_record = mongo[db_config[config_name]["db"]][db_config[config_name]["collection"]]. \
+            latest_record = mongo[db_config[config_name]["db"]][db_config[config_name]["trans_data_col"]]. \
                 find({"timestamp": {"$lte": timestamp}}).sort("_id", -1)[0]
             data = {
                 "err": "False",
@@ -184,8 +193,8 @@ class LatestRecordSetGivenTimestamp(BaseClassWithCORS):
         try:
             mongo[db_config[config_name]["db"]].authenticate(request.authorization.username,
                                                              request.authorization.password)
-            latest_record_set = mongo[db_config[config_name]["db"]][db_config[config_name]["collection"]]. \
-                find({"timestamp": {"$lte": timestamp}}).sort("_id", -1)[:amount]
+            latest_record_set = mongo[db_config[config_name]["db"]][db_config[config_name]["trans_data_col"]]. \
+                                    find({"timestamp": {"$lte": timestamp}}).sort("_id", -1)[:amount]
             data = {
                 "err": "False",
                 "message": "Successfully auth",
