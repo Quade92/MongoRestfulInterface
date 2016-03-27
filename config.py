@@ -4,7 +4,8 @@ db_config = {
     "dev_config": {
         "host": "localhost",
         "port": 27999,
-        "db": "data_db",
+        "auth_db": "auth_db",
+        "data_db": "data_db",
         "raw_data_col": "raw_data",
         "trans_data_col": "trans_data"
     }
