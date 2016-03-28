@@ -7,6 +7,8 @@ import config
 from bson.json_util import loads, dumps
 import werkzeug.security
 import uuid
+import datetime
+import time
 
 
 class BaseClassWithCORS(flask_restful.Resource):
@@ -126,6 +128,10 @@ class AuthenticateByPassword(BaseClassWithCORS):
             checked = werkzeug.security.check_password_hash(user["pwd"], request_data["pwd"])
             if checked:
                 token = uuid.uuid4().hex
+                now = datetime.datetime.utcnow()
+                expir = datetime.timedelta(days=7)
+                expir_timestamp = int(((now+expir) - datetime.datetime(1970,1,1)).total_seconds()*1000)
+                factory.auth_db["token"].insert({"token": token, "expir": expir_timestamp})
                 data = {
                     "err": "False",
                     "message": "Successfully auth",
