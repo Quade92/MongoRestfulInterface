@@ -1,12 +1,8 @@
-from app import create_app
-from flask_pymongo import MongoClient
-from config import db_config
-import getpass
+from app.main.factory import create_app
 
-app = create_app()
-config_name = "dev_config"
-auth_db = MongoClient(host=db_config[config_name]["host"], port=db_config[config_name]["port"])[db_config[config_name]["auth_db"]]
-auth_db.authenticate(raw_input("auth database username:"), getpass.getpass(prompt="auth database password:"))
+
+flask_app = create_app()
+
 print "login succeed!"
 if __name__ == '__main__':
-    app.run(threaded=True)
+    flask_app.run(threaded=True)

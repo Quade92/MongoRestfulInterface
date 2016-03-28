@@ -1,5 +1,8 @@
 # coding=utf-8
 import random
+
+config_name = "dev_config"
+
 db_config = {
     "dev_config": {
         "host": "localhost",

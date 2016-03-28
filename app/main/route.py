@@ -1,12 +1,14 @@
 import resources
-from app import api
+import factory
 
 
-api.add_resource(resources.LatestRecord, "/latest-record")
-api.add_resource(resources.LatestRecordSet, "/latest-record-set/<int:amount>")
-api.add_resource(resources.Record, "/record")
-api.add_resource(resources.RecordSeries, "/record-series/<int:start>/<int:end>")
-api.add_resource(resources.AuthenticateByPassword, "/authenticate")
-api.add_resource(resources.LatestRecordGivenTimestamp, "/latest-record/<int:timestamp>")
-api.add_resource(resources.LatestRecordSetGivenTimestamp, "/latest-record-set/<int:timestamp>/<int:amount>")
-api.add_resource(resources.Register, "/register")
+def init_route():
+    factory.api.add_resource(resources.LatestRecord, "/latest-record")
+    factory.api.add_resource(resources.LatestRecordSet, "/latest-record-set/<int:amount>")
+    factory.api.add_resource(resources.Record, "/record")
+    factory.api.add_resource(resources.RecordSeries, "/record-series/<int:start>/<int:end>")
+    factory.api.add_resource(resources.AuthenticateByPassword, "/authenticate")
+    factory.api.add_resource(resources.LatestRecordGivenTimestamp, "/latest-record/<int:timestamp>")
+    factory.api.add_resource(resources.LatestRecordSetGivenTimestamp, "/latest-record-set/<int:timestamp>/<int:amount>")
+    factory.api.add_resource(resources.Register, "/register")
+    return 0
