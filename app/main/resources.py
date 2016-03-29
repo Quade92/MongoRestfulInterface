@@ -8,6 +8,7 @@ from bson.json_util import loads, dumps
 import werkzeug.security
 import uuid
 import datetime
+import base64
 
 
 class BaseClassWithCORS(flask_restful.Resource):
@@ -16,7 +17,7 @@ class BaseClassWithCORS(flask_restful.Resource):
         resp.headers.extend({
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET,POST",
-            "Access-Control-Allow-Headers": "Authorization,Content-Type"
+            "Access-Control-Allow-Headers": "Authorization, Content-Type"
         })
         return resp
 
@@ -97,14 +98,14 @@ class Record(BaseClassWithCORS):
         data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
         db = config.db_config[config.config_name]["data_db"]["db"]
         data_db = data_db_mongo[db]
-        raw_col = config.db_config[config.config_name]["raw_data_col"]
-        trans_col = config.db_config[config.config_name]["trans_data_col"]
+        raw_col = config.db_config[config.config_name]["data_db"]["raw_data_col"]
+        trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
         try:
             request_data = loads(flask.request.data)
             token = request_data["token"]
             checked = factory.auth_db["token"].find({"token": token})
             if checked:
-                raw_json = request_data["data"]
+                raw_json = request_data["sp_data"]["data"]
                 trans_json = config.transform_data(raw_json)
                 raw_insert_result = data_db[raw_col].insert_one(raw_json)
                 trans_insert_result = data_db[trans_col].insert_one(trans_json)
@@ -173,30 +174,34 @@ class AuthenticateByPassword(BaseClassWithCORS):
 
 class LatestRecordSet(BaseClassWithCORS):
     def get(self, amount):
-        mongo = flask_pymongo.MongoClient(host=config.db_config[config.config_name]["host"],
-                                          port=config.db_config[config.config_name]["port"])
-        try:
-            mongo[config.db_config[config.config_name]["data_db"]].authenticate(flask.request.authorization.username,
-                                                                                flask.request.authorization.password)
-            latest_records = mongo[config.db_config[config.config_name]["data_db"]] \
-                                 [config.db_config[config.config_name]["trans_data_col"]] \
-                                 .find().sort("_id", -1)[:amount]
+        data_db_host = config.db_config[config.config_name]["data_db"]["host"]
+        data_db_port = config.db_config[config.config_name]["data_db"]["port"]
+        data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
+        db = config.db_config[config.config_name]["data_db"]["db"]
+        data_db = data_db_mongo[db]
+        trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
+
+        auth_headers = flask.request.headers.get("Authorization")
+        method, token = auth_headers.split(" ")
+        checked = factory.auth_db["token"].find({"token": token})
+        if checked:
+            latest_records = data_db[trans_col].find().sort("_id", -1)[:amount]
             data = {
                 "err": "False",
                 "message": "Successfully auth",
                 "result": latest_records
             }
-            resp = flask.make_response(dumps(data))
-            resp.headers.extend({
-                "Access-Control-Allow-Origin": "*"
-            })
-            return resp
-        except pymongo.errors.OperationFailure, err:
-            return {
+        else:
+            data = {
                 "err": "True",
-                "message": "Failed getting data",
-                "result": err.details
+                "message": "Authentication by token failed",
+                "result": ""
             }
+        resp = flask.make_response(dumps(data))
+        resp.headers.extend({
+            "Access-Control-Allow-Origin": "*"
+        })
+        return resp
 
 
 class Register(BaseClassWithCORS):
@@ -224,3 +229,4 @@ class Register(BaseClassWithCORS):
                 "message": "Failed registering",
                 "result": err.details
             }
+
