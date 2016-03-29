@@ -8,7 +8,6 @@ from bson.json_util import loads, dumps
 import werkzeug.security
 import uuid
 import datetime
-import time
 
 
 class BaseClassWithCORS(flask_restful.Resource):
@@ -17,15 +16,16 @@ class BaseClassWithCORS(flask_restful.Resource):
         resp.headers.extend({
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, POST",
-            "Access-Control-Allow-Headers": "Authorization"
+            "Access-Control-Allow-Headers": "Authorization,Content-Type"
         })
         return resp
 
 
 class RecordSeries(BaseClassWithCORS):
     def get(self, start, end):
-        mongo = flask_pymongo.MongoClient(host=config.db_config[config.config_name]["host"],
-                                          port=config.db_config[config.config_name]["port"])
+        data_db_host = config.db_config[config.config_name]["data_db"]["host"]
+        data_db_port = config.db_config[config.config_name]["data_db"]["port"]
+        mongo = flask_pymongo.MongoClient(host=data_db_host,port=data_db_port)
         try:
             mongo[config.db_config[config.config_name]["data_db"]].authenticate(flask.request.authorization.username,
                                                                              flask.request.authorization.password)

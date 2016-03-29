@@ -5,12 +5,18 @@ config_name = "dev_config"
 
 db_config = {
     "dev_config": {
-        "host": "localhost",
-        "port": 27999,
-        "auth_db": "auth_db",
-        "data_db": "data_db",
-        "raw_data_col": "raw_data",
-        "trans_data_col": "trans_data"
+        "data_db": {
+            "db": "data_db",
+            "host": "localhost",
+            "port": 27999,
+            "raw_data_col": "raw_data",
+            "trans_data_col": "trans_data"
+        },
+        "auth_db": {
+            "db": "auth_db",
+            "host": "localhost",
+            "port": 27998
+        }
     }
 }
 
