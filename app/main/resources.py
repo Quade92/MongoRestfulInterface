@@ -65,19 +65,29 @@ class RecordSeries(BaseClassWithCORS):
 
 class LatestRecord(BaseClassWithCORS):
     def get(self):
-        mongo = flask_pymongo.MongoClient(host=config.db_config[config.config_name]["host"],
-                                          port=config.db_config[config.config_name]["port"])
+        data_db_host = config.db_config[config.config_name]["data_db"]["host"]
+        data_db_port = config.db_config[config.config_name]["data_db"]["port"]
+        data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
+        db = config.db_config[config.config_name]["data_db"]["db"]
+        data_db = data_db_mongo[db]
+        trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
         try:
-            mongo[config.db_config[config.config_name]["data_db"]].authenticate(flask.request.authorization.username,
-                                                                                flask.request.authorization.password)
-            # QUERY: return the latest record
-            latest_record = mongo[config.db_config[config.config_name]["data_db"]] \
-                [config.db_config[config.config_name]["trans_data_col"]].find().sort("_id", -1)[0]
-            data = {
-                "err": "False",
-                "message": "Successfully auth",
-                "result": latest_record
-            }
+            auth_headers = flask.request.headers.get("Authorization")
+            method, token = auth_headers.split(" ")
+            checked = factory.auth_db["token"].find({"token": token})
+            if checked:
+                latest_record = data_db[trans_col].find().sort("_id", -1)[0]
+                data = {
+                    "err": "False",
+                    "message": "Successfully auth",
+                    "result": latest_record
+                }
+            else:
+                data = {
+                    "err": "True",
+                    "message": "Authenticate failed",
+                    "result": ""
+                }
             resp = flask.make_response(dumps(data))
             resp.headers.extend({
                 "Access-Control-Allow-Origin": "*"
