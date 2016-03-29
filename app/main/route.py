@@ -8,7 +8,5 @@ def init_route():
     factory.api.add_resource(resources.Record, "/record")
     factory.api.add_resource(resources.RecordSeries, "/record-series/<int:start>/<int:end>")
     factory.api.add_resource(resources.AuthenticateByPassword, "/authenticate")
-    factory.api.add_resource(resources.LatestRecordGivenTimestamp, "/latest-record/<int:timestamp>")
-    factory.api.add_resource(resources.LatestRecordSetGivenTimestamp, "/latest-record-set/<int:timestamp>/<int:amount>")
     factory.api.add_resource(resources.Register, "/register")
     return 0

@@ -184,62 +184,6 @@ class LatestRecordSet(BaseClassWithCORS):
             }
 
 
-class LatestRecordGivenTimestamp(BaseClassWithCORS):
-    def get(self, timestamp):
-        mongo = flask_pymongo.MongoClient(host=config.db_config[config.config_name]["host"],
-                                          port=config.db_config[config.config_name]["port"])
-        try:
-            mongo[config.db_config[config.config_name]["data_db"]].authenticate(flask.request.authorization.username,
-                                                                             flask.request.authorization.password)
-            latest_record = \
-            mongo[config.db_config[config.config_name]["data_db"]][config.db_config[config.config_name]["trans_data_col"]]. \
-                find({"timestamp": {"$lte": timestamp}}).sort("_id", -1)[0]
-            data = {
-                "err": "False",
-                "message": "Successfully auth",
-                "result": latest_record
-            }
-            resp = flask.make_response(dumps(data))
-            resp.headers.extend({
-                "Access-Control-Allow-Origin": "*"
-            })
-            return resp
-        except pymongo.errors.OperationFailure, err:
-            return {
-                "err": "True",
-                "message": "Failed getting data",
-                "result": err.details
-            }
-
-
-class LatestRecordSetGivenTimestamp(BaseClassWithCORS):
-    def get(self, timestamp, amount):
-        mongo = flask_pymongo.MongoClient(host=config.db_config[config.config_name]["host"],
-                                          port=config.db_config[config.config_name]["port"])
-        try:
-            mongo[config.db_config[config.config_name]["data_db"]].authenticate(flask.request.authorization.username,
-                                                                             flask.request.authorization.password)
-            latest_record_set = mongo[config.db_config[config.config_name]["data_db"]][
-                                    config.db_config[config.config_name]["trans_data_col"]]. \
-                                    find({"timestamp": {"$lte": timestamp}}).sort("_id", -1)[:amount]
-            data = {
-                "err": "False",
-                "message": "Successfully auth",
-                "result": latest_record_set
-            }
-            resp = flask.make_response(dumps(data))
-            resp.headers.extend({
-                "Access-Control-Allow-Origin": "*"
-            })
-            return resp
-        except pymongo.errors.OperationFailure, err:
-            return {
-                "err": "True",
-                "message": "Failed getting data",
-                "result": err.details
-            }
-
-
 class Register(BaseClassWithCORS):
     def post(self):
         try:
