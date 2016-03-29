@@ -8,7 +8,6 @@ from bson.json_util import loads, dumps
 import werkzeug.security
 import uuid
 import datetime
-import base64
 
 
 class BaseClassWithCORS(flask_restful.Resource):
@@ -23,22 +22,22 @@ class BaseClassWithCORS(flask_restful.Resource):
 
 
 class RecordSeries(BaseClassWithCORS):
-    def post(self, start, end):
+    def get(self, start, end):
         data_db_host = config.db_config[config.config_name]["data_db"]["host"]
         data_db_port = config.db_config[config.config_name]["data_db"]["port"]
         data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
         db = config.db_config[config.config_name]["data_db"]["db"]
         data_db = data_db_mongo[db]
+        trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
         try:
-            request_data = loads(flask.request.data)
-            token = request_data["token"]
+            auth_headers = flask.request.headers.get("Authorization")
+            method, token = auth_headers.split(" ")
             checked = factory.auth_db["token"].find({"token": token})
             if checked:
-                records = data_db.find({
+                records = data_db[trans_col].find({
                     "$and": [{"timestamp": {"$gte": start}},
                              {"timestamp": {"$lte": end}}]}
                 ).sort("_id", -1)
-                records = [record for record in records]
                 resp_data = {
                     "err": "False",
                     "message": "Successfully auth",
