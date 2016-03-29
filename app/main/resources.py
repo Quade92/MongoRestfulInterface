@@ -34,6 +34,14 @@ class RecordSeries(BaseClassWithCORS):
             method, token = auth_headers.split(" ")
             checked = factory.auth_db["token"].find({"token": token})
             if checked:
+                factory.auth_db["token"].update_one(
+                    {"token": token},
+                    {
+                        "$inc": {
+                            "expir": 604800000
+                        }
+                    }
+                )
                 records = data_db[trans_col].find({
                     "$and": [{"timestamp": {"$gte": start}},
                              {"timestamp": {"$lte": end}}]}
@@ -75,6 +83,14 @@ class LatestRecord(BaseClassWithCORS):
             method, token = auth_headers.split(" ")
             checked = factory.auth_db["token"].find({"token": token})
             if checked:
+                factory.auth_db["token"].update_one(
+                    {"token": token},
+                    {
+                        "$inc": {
+                            "expir": 604800000
+                        }
+                    }
+                )
                 latest_record = data_db[trans_col].find().sort("_id", -1)[0]
                 data = {
                     "err": "False",
@@ -113,8 +129,16 @@ class Record(BaseClassWithCORS):
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
             request_data = loads(flask.request.data)
-            checked = factory.auth_db["token"].find({"token": token})
+            checked = factory.auth_db["token"].find_one({"token": token})
             if checked:
+                factory.auth_db["token"].update_one(
+                    {"token": token},
+                    {
+                        "$inc": {
+                            "expir": 604800000
+                        }
+                    }
+                )
                 raw_json = request_data["data"]
                 trans_json = config.transform_data(raw_json)
                 raw_insert_result = data_db[raw_col].insert_one(raw_json)
@@ -195,6 +219,14 @@ class LatestRecordSet(BaseClassWithCORS):
         method, token = auth_headers.split(" ")
         checked = factory.auth_db["token"].find({"token": token})
         if checked:
+            factory.auth_db["token"].update_one(
+                {"token": token},
+                {
+                    "$inc": {
+                        "expir": 604800000
+                    }
+                }
+            )
             latest_records = data_db[trans_col].find().sort("_id", -1)[:amount]
             data = {
                 "err": "False",
@@ -239,4 +271,3 @@ class Register(BaseClassWithCORS):
                 "message": "Failed registering",
                 "result": err.details
             }
-
