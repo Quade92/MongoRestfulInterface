@@ -101,11 +101,12 @@ class Record(BaseClassWithCORS):
         raw_col = config.db_config[config.config_name]["data_db"]["raw_data_col"]
         trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
         try:
+            auth_headers = flask.request.headers.get("Authorization")
+            method, token = auth_headers.split(" ")
             request_data = loads(flask.request.data)
-            token = request_data["token"]
             checked = factory.auth_db["token"].find({"token": token})
             if checked:
-                raw_json = request_data["sp_data"]["data"]
+                raw_json = request_data["data"]
                 trans_json = config.transform_data(raw_json)
                 raw_insert_result = data_db[raw_col].insert_one(raw_json)
                 trans_insert_result = data_db[trans_col].insert_one(trans_json)
