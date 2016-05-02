@@ -129,7 +129,7 @@ class Record(BaseClassWithCORS):
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
             request_data = loads(flask.request.data)
-            checked = factory.auth_db["token"].find_one({"token": token})
+            checked = factory.auth_db["token"].find_one({"token": token})["role"] == "writer"
             if checked:
                 factory.auth_db["token"].update_one(
                     {"token": token},
@@ -181,7 +181,7 @@ class AuthenticateByPassword(BaseClassWithCORS):
                 now = datetime.datetime.utcnow()
                 expir = datetime.timedelta(days=7)
                 expir_timestamp = int(((now + expir) - datetime.datetime(1970, 1, 1)).total_seconds() * 1000)
-                factory.auth_db["token"].insert({"token": token, "expir": expir_timestamp})
+                factory.auth_db["token"].insert({"token": token, "expir": expir_timestamp, "role": user["role"]})
                 data = {
                     "err": "False",
                     "message": "Successfully auth",
@@ -252,7 +252,8 @@ class Register(BaseClassWithCORS):
             request_data = loads(flask.request.data)
             new_json = {
                 "un": request_data["un"],
-                "pwd": werkzeug.security.generate_password_hash(request_data["pwd"], method='pbkdf2:sha1')
+                "pwd": werkzeug.security.generate_password_hash(request_data["pwd"], method='pbkdf2:sha1'),
+                "role": request_data["role"]
             }
             register_insert = factory.auth_db["user"].insert_one(new_json)
             resp_data = {
