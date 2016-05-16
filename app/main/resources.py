@@ -140,8 +140,23 @@ class Record(BaseClassWithCORS):
                     }
                 )
                 raw_json = request_data["data"]
-                trans_json = config.transform_data(raw_json)
                 raw_insert_result = data_db[raw_col].insert_one(raw_json)
+                # windows size 100
+                window = data_db[raw_col].find().sort("_id", -1)[:99].limit(99)
+                if window.count(True) < 99:
+                    resp_data = {
+                        "err": "True",
+                        "message": "not enough data for smoothing",
+                        "result": {
+                            "raw_insert_id": raw_insert_result.inserted_id,
+                        }
+                    }
+                    resp = flask.make_response(dumps(resp_data))
+                    resp.headers.extend({
+                        "Access-Control-Allow-Origin": "*"
+                    })
+                    return resp
+                trans_json = config.transform_data(window, raw_json)
                 trans_insert_result = data_db[trans_col].insert_one(trans_json)
                 resp_data = {
                     "err": "False",
