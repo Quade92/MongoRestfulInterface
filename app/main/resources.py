@@ -143,6 +143,10 @@ class Record(BaseClassWithCORS):
                 raw_insert_result = data_db[raw_col].insert_one(raw_json)
                 # windows size 100
                 window = data_db[raw_col].find().sort("_id", -1)[:99].limit(99)
+                for i, json in enumerate(window[1:]):
+                    step_less_than_5 = (json["timestamp"]-window[i]["timestamp"])<5000
+                    if not step_less_than_5:
+                        break
                 if window.count(True) < 99:
                     resp_data = {
                         "err": "True",
@@ -156,6 +160,19 @@ class Record(BaseClassWithCORS):
                         "Access-Control-Allow-Origin": "*"
                     })
                     return resp
+                elif not step_less_than_5:
+                    # blank area of data existed in window
+                    resp_data = {
+                        "err": "True",
+                        "message", "blank area in window",
+                        "result": {
+                            "raw_insert_id": raw_insert_result.inserted_id
+                        }
+                    }
+                    resp = flask.make_response(dumps(resp_data))
+                    resp.headers.extend({
+                        "Access-Control-Allow-Origin": "*"    
+                    })
                 trans_json = config.transform_data(window, raw_json)
                 trans_insert_result = data_db[trans_col].insert_one(trans_json)
                 resp_data = {
