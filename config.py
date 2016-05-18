@@ -39,21 +39,35 @@ def transform_data(window, raw_json):
     AN2_sum = sum(map(lambda json: json["sensors"]["AN2"]["value"], copy.deepcopy(window)))
     AN7_sum = sum(map(lambda json: json["sensors"]["AN7"]["value"], copy.deepcopy(window)))
     AN8_sum = sum(map(lambda json: json["sensors"]["AN8"]["value"], copy.deepcopy(window)))
-    trans_json["channel"]["CH5"] = {
-        "label": new_labels[4],
-        "value": round(15.06 * (AN1_sum + raw_json["sensors"]["AN1"]["value"])/100 + 16.38,2)
-    }
     trans_json["channel"]["CH6"] = {
+        # A voltage
+        "label": new_labels[4],
+        "value": round(1.08 * 1.1 * (15.06 * (AN1_sum + raw_json["sensors"]["AN1"]["value"])/(window.count(True)+1) + 16.38),2)
+    }
+    trans_json["channel"]["CH5"] = {
+        # B voltage
         "label": new_labels[5],
-        "value": round(15.06 * (AN2_sum + raw_json["sensors"]["AN2"]["value"])/100 + 16.38,2)
+        "value": round(1.08 * 1.1 * (15.06 * (AN2_sum + raw_json["sensors"]["AN2"]["value"])/(window.count(True)+1) + 16.38),2)
     }
     trans_json["channel"]["CH7"] = {
+        # A current
         "label": new_labels[6],
-        "value": round(9.392 * (AN7_sum + raw_json["sensors"]["AN7"]["value"])/100 - 0.9334,2)
+        "value": round(1.15 * (9.392 * (AN7_sum + raw_json["sensors"]["AN7"]["value"])/(window.count(True)+1) - 0.9334),2)
     }
     trans_json["channel"]["CH8"] = {
+        # B current
         "label": new_labels[7],
-        "value": round(9.054 * (AN8_sum + raw_json["sensors"]["AN8"]["value"])/100 - 0.8262,2)
+        "value": round(1.15 * (9.054 * (AN8_sum + raw_json["sensors"]["AN8"]["value"])/(window.count(True)+1) - 0.8262),2)
+    }
+    trans_json["channel"]["CH9"] = {
+        # A power
+        "label": new_labels[8],
+        "value": round(1/1.7 * 1.732 * trans_json["channel"]["CH6"]["value"] * trans_json["channel"]["CH7"]["value"], 2)
+    }
+    trans_json["channel"]["CH10"] = {
+        # B power
+        "label": new_labels[9],
+        "value": round(1/1.7 * 1.732 * trans_json["channel"]["CH5"]["value"] * trans_json["channel"]["CH8"]["value"], 2)
     }
     # TODO modify value in tran_json.channel
     return trans_json
