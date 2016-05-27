@@ -33,7 +33,7 @@ class RecordSeries(BaseClassWithCORS):
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
             checked = factory.auth_db["token"].find({"token": token})
-            if checked:
+            if checked.count(True)>0:
                 factory.auth_db["token"].update_one(
                     {"token": token},
                     {
@@ -68,6 +68,12 @@ class RecordSeries(BaseClassWithCORS):
                 "message": "Failed getting data",
                 "result": err.details
             }
+        except Exception, err:
+            return {
+                "err": "True",
+                "message": "unknow error",
+                "result": err.details
+            }
 
 
 class LatestRecord(BaseClassWithCORS):
@@ -82,7 +88,7 @@ class LatestRecord(BaseClassWithCORS):
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
             checked = factory.auth_db["token"].find({"token": token})
-            if checked:
+            if checked.count(True)>0:
                 factory.auth_db["token"].update_one(
                     {"token": token},
                     {
@@ -118,19 +124,19 @@ class LatestRecord(BaseClassWithCORS):
 
 class Record(BaseClassWithCORS):
     def post(self):
-        data_db_host = config.db_config[config.config_name]["data_db"]["host"]
-        data_db_port = config.db_config[config.config_name]["data_db"]["port"]
-        data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
-        db = config.db_config[config.config_name]["data_db"]["db"]
-        data_db = data_db_mongo[db]
-        raw_col = config.db_config[config.config_name]["data_db"]["raw_data_col"]
-        trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
         try:
+            data_db_host = config.db_config[config.config_name]["data_db"]["host"]
+            data_db_port = config.db_config[config.config_name]["data_db"]["port"]
+            data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
+            db = config.db_config[config.config_name]["data_db"]["db"]
+            data_db = data_db_mongo[db]
+            raw_col = config.db_config[config.config_name]["data_db"]["raw_data_col"]
+            trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
             request_data = loads(flask.request.data)
             checked = factory.auth_db["token"].find_one({"token": token})["role"] == "writer"
-            if checked:
+            if checked.count(True)>0:
                 factory.auth_db["token"].update_one(
                     {"token": token},
                     {
@@ -141,9 +147,10 @@ class Record(BaseClassWithCORS):
                 )
                 raw_json = request_data["data"]
                 raw_insert_result = data_db[raw_col].insert_one(raw_json)
-                # windows size 100
-                window = data_db[raw_col].find().sort("_id", -1)[:99].limit(99)
-                if window.count(True) < 99:
+                # windows size 300
+                WINDOW_SIZE = 300
+                window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE-1].limit(WINDOW_SIZE-1)
+                if window.count(True) < WINDOW_SIZE-1:
                     resp_data = {
                         "err": "True",
                         "message": "not enough data for smoothing",
@@ -179,10 +186,21 @@ class Record(BaseClassWithCORS):
             return resp
         except pymongo.errors.OperationFailure, err:
             return {
+               "err": "True",
+               "message": "Failed post data",
+               "result": err.details
+            }
+        except Exception, err:
+            resp_data = {
                 "err": "True",
-                "message": "Failed post data",
+                "message": "Unknown error",
                 "result": err.details
             }
+            resp = flask.make_response(dumps(resp_data))
+            resp.headers.extend({
+                "Access-Control-Allow-Origin": "*"
+            })
+            return resp
 
 
 class AuthenticateByPassword(BaseClassWithCORS):
@@ -233,7 +251,7 @@ class LatestRecordSet(BaseClassWithCORS):
         auth_headers = flask.request.headers.get("Authorization")
         method, token = auth_headers.split(" ")
         checked = factory.auth_db["token"].find({"token": token})
-        if checked:
+        if checked.count(True)>0:
             factory.auth_db["token"].update_one(
                 {"token": token},
                 {
