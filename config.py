@@ -87,7 +87,7 @@ def transform_data(window, raw_json):
         # A speed
         "label": new_labels[0],
         "unit": u"rpm",
-        "value": A_n_dot+A_delta_n
+        "value": round(A_n_dot+A_delta_n,2)
     }
     B_p = trans_json["channel"]["CH5"]["value"]/1000.0
     B_n_dot = B_p / 390.0 * 70
@@ -96,18 +96,18 @@ def transform_data(window, raw_json):
         # B speed
         "label": new_labels[1],
         "unit": u"rpm",
-        "value": B_n_dot + B_delta_n
+        "value": round(B_n_dot + B_delta_n,2)
     }
     trans_json["channel"]["CH3"] = {
         # current speed
         "label": new_labels[2],
         "unit": u"m/s",
-        "value": (raw_json["sensors"]["AN3"]["value"]-4.0)/16.0*7.0
+        "value": round((raw_json["sensors"]["AN3"]["value"]-4.0)/16.0*7.0,2)
     }
     trans_json["channel"]["CH4"] = {
         # current direction
         "label": new_labels[3],
         "unit": u"度",
-        "value": (raw_json["sensors"]["AN3"]["value"]-4.0)/16.0*360.0
+        "value": round((raw_json["sensors"]["AN3"]["value"]-4.0)/16.0*360.0,2)
     }
     return trans_json
