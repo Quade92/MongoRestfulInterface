@@ -136,7 +136,7 @@ class Record(BaseClassWithCORS):
             method, token = auth_headers.split(" ")
             request_data = loads(flask.request.data)
             checked = factory.auth_db["token"].find_one({"token": token})["role"] == "writer"
-            if checked.count(True)>0:
+            if checked:
                 factory.auth_db["token"].update_one(
                     {"token": token},
                     {
@@ -148,15 +148,20 @@ class Record(BaseClassWithCORS):
                 raw_json = request_data["data"]
                 raw_insert_result = data_db[raw_col].insert_one(raw_json)
                 # windows size 100
-                WINDOW_SIZE = 60
-                window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE-1].limit(WINDOW_SIZE-1)
-                last_trans_doc = data_db[trans_col].find().sort("_id",-1)[0]
-                if window.count(True) < WINDOW_SIZE-1:
+                # WINDOW_SIZE = 60
+                # window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE-1].limit(WINDOW_SIZE-1)
+                print "sofarsogood"
+                last_trans_doc = data_db[trans_col].find().sort("_id",-1)[:1]
+                print last_trans_doc.count()
+                if last_trans_doc.count()==0:
+                    trans_json = config.transform_data(raw_json)
+                    trans_insert_result = data_db[trans_col].insert_one(trans_json)
                     resp_data = {
-                        "err": "True",
-                        "message": "not enough data for smoothing",
+                        "err": "False",
+                        "message": "first data record",
                         "result": {
                             "raw_insert_id": raw_insert_result.inserted_id,
+                            "trans_insert_id": trans_insert_result.inserted_id
                         }
                     }
                     resp = flask.make_response(dumps(resp_data))
@@ -164,7 +169,20 @@ class Record(BaseClassWithCORS):
                         "Access-Control-Allow-Origin": "*"
                     })
                     return resp
-                trans_json = config.transform_data(window, last_trans_doc, raw_json)
+                # if window.count(True) < WINDOW_SIZE-1:
+                #     resp_data = {
+                #         "err": "True",
+                #         "message": "not enough data for smoothing",
+                #         "result": {
+                #             "raw_insert_id": raw_insert_result.inserted_id,
+                #         }
+                #     }
+                #     resp = flask.make_response(dumps(resp_data))
+                #     resp.headers.extend({
+                #         "Access-Control-Allow-Origin": "*"
+                #     })
+                #     return resp
+                trans_json = config.transform_data(raw_json, last_trans_doc[0])
                 trans_insert_result = data_db[trans_col].insert_one(trans_json)
                 resp_data = {
                     "err": "False",
@@ -210,7 +228,7 @@ class AuthenticateByPassword(BaseClassWithCORS):
             request_data = loads(flask.request.data)
             user = factory.auth_db["user"].find_one({"un": request_data["un"]})
             checked = werkzeug.security.check_password_hash(user["pwd"], request_data["pwd"])
-            if checked.count(True)>0:
+            if checked>0:
                 token = uuid.uuid4().hex
                 now = datetime.datetime.utcnow()
                 expir = datetime.timedelta(days=7)
