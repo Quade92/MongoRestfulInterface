@@ -147,9 +147,10 @@ class Record(BaseClassWithCORS):
                 )
                 raw_json = request_data["data"]
                 raw_insert_result = data_db[raw_col].insert_one(raw_json)
-                # windows size 300
-                WINDOW_SIZE = 300
+                # windows size 100
+                WINDOW_SIZE = 60
                 window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE-1].limit(WINDOW_SIZE-1)
+                last_trans_doc = data_db[trans_col].find().sort("_id",-1)[0]
                 if window.count(True) < WINDOW_SIZE-1:
                     resp_data = {
                         "err": "True",
@@ -163,7 +164,7 @@ class Record(BaseClassWithCORS):
                         "Access-Control-Allow-Origin": "*"
                     })
                     return resp
-                trans_json = config.transform_data(window, raw_json)
+                trans_json = config.transform_data(window, last_trans_doc, raw_json)
                 trans_insert_result = data_db[trans_col].insert_one(trans_json)
                 resp_data = {
                     "err": "False",
@@ -209,16 +210,24 @@ class AuthenticateByPassword(BaseClassWithCORS):
             request_data = loads(flask.request.data)
             user = factory.auth_db["user"].find_one({"un": request_data["un"]})
             checked = werkzeug.security.check_password_hash(user["pwd"], request_data["pwd"])
-            if checked:
+            if checked.count(True)>0:
                 token = uuid.uuid4().hex
                 now = datetime.datetime.utcnow()
                 expir = datetime.timedelta(days=7)
                 expir_timestamp = int(((now + expir) - datetime.datetime(1970, 1, 1)).total_seconds() * 1000)
-                factory.auth_db["token"].insert({"token": token, "expir": expir_timestamp, "role": user["role"]})
+                factory.auth_db["token"].insert({
+                    "token": token,
+                    "un": request_data["un"],
+                    "expir": expir_timestamp,
+                    "role": user["role"]}
+                )
                 data = {
                     "err": "False",
                     "message": "Successfully auth",
-                    "result": {"token": token}
+                    "result": {
+                        "un": request_data["un"],
+                        "token": token
+                    }
                 }
             else:
                 data = {
