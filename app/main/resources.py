@@ -1,3 +1,4 @@
+# coding=utf-8
 import flask
 import flask_restful
 import flask_pymongo
@@ -8,7 +9,6 @@ from bson.json_util import loads, dumps
 import werkzeug.security
 import uuid
 import datetime
-import csv
 import StringIO
 
 
@@ -31,11 +31,12 @@ class DownloadHistoryCSV(BaseClassWithCORS):
         data_db = data_db_mongo[config.db_config[config.config_name]["data_db"]["db"]]
         trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
         raw_col = config.db_config[config.config_name]["data_db"]["raw_data_col"]
+        print "INIT"
         try:
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
             checked = factory.auth_db["token"].find({"token": token})
-            if checked.count(True) > 0 :
+            if checked.count(True) > 0:
                 factory.auth_db["token"].update_one(
                     {"token": token},
                     {
@@ -47,35 +48,48 @@ class DownloadHistoryCSV(BaseClassWithCORS):
                 raw_records = data_db[raw_col].find({
                     "$and": [{"timestamp": {"$gte": start}},
                              {"timestamp": {"$lte": end}}]}
-                ).sort("_id", -1)
+                )
                 trans_records = data_db[trans_col].find({
                     "$and": [{"timestamp": {"$gte": start}},
                              {"timestamp": {"$lte": end}}]}
-                ).sort("_id", -1)
+                )
+                print "FIND"
                 csv_io = StringIO.StringIO()
-                for i, (raw_json, trans_json) in enumerate(zip(raw_records, trans_records)):
-                    if i==0:
-                        header = ["timestamp"]
-                        for sensor, sensor_json in raw_json["sensors"]:
-                            header.append(sensor_json["label"])
-                        for channel, channel_json in trans_json["channel"]:
-                            header.append(channel_json["label"]+" "+channel_json["unit"])
-                        csv_io.write(",".join(header)+"\n")
-                    row = [raw_json["timestamp"]]
-                    for sensor, sensor_json in raw_json["sensors"]:
-                        row.append(sensor_json["value"])
-                    for channel, channel_json in trans_json["channel"]:
-                        row.append(channel_json["value"])
-                    csv_io.write(",".join(row)+"\n")
-                resp = flask.make_response(csv_io)
+                header = ["timestamp"]
+                for sensor in raw_records[0]["sensors"]:
+                    header.append(sensor)
+                for channel in trans_records[0]["channel"]:
+                    header.append(channel)
+                csv_io.write(",".join(header) + "\n")
+                print "HEADER"
+                for raw_json, trans_json in zip(raw_records, trans_records):
+                    row = [str(raw_json["timestamp"])]
+                    for sensor in raw_json["sensors"]:
+                        row.append(str(raw_json["sensors"][sensor]["value"]))
+                    for channel in trans_json["channel"]:
+                        row.append(str(trans_json["channel"][channel]["value"]))
+                    csv_io.write(",".join(row) + "\n")
+                print "CONTENT"
+                resp = flask.make_response(csv_io.getvalue())
                 resp.headers.extend({
                     "Access-Control-Allow-Origin": "*",
-                    "Content-Disposition": "attachment; filename=export.csv",
-                    "Content-Type": "text/csv"
+                    "Content-Disposition": "attachment; filename=export.csv"
+                    # "Content-Type": "text/csv"
                 })
+                resp.headers["Content-Type"] = "text/csv; charset=utf-8"
+                print "RESP"
                 return resp
-        except:
-            pass
+        except Exception, err:
+            resp_data = {
+                "err": "True",
+                "message": str(err),
+                "result": ""
+            }
+            resp = flask.make_response(dumps(resp_data))
+            resp.headers.extend({
+                "Access-Control-Allow-Origin": "*"
+            })
+            return resp
 
 
 class RecordSeries(BaseClassWithCORS):
@@ -123,13 +137,13 @@ class RecordSeries(BaseClassWithCORS):
             return {
                 "err": "True",
                 "message": "Failed getting data",
-                "result": err.details
+                "result": str(err)
             }
         except Exception, err:
             return {
                 "err": "True",
                 "message": "unknow error",
-                "result": err.details
+                "result": str(err)
             }
 
 
@@ -270,7 +284,7 @@ class Record(BaseClassWithCORS):
             resp_data = {
                 "err": "True",
                 "message": "Unknown error",
-                "result": err.details
+                "result": str(err)
             }
             resp = flask.make_response(dumps(resp_data))
             resp.headers.extend({
