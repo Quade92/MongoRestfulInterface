@@ -8,6 +8,8 @@ from bson.json_util import loads, dumps
 import werkzeug.security
 import uuid
 import datetime
+import csv
+import StringIO
 
 
 class BaseClassWithCORS(flask_restful.Resource):
@@ -19,6 +21,61 @@ class BaseClassWithCORS(flask_restful.Resource):
             "Access-Control-Allow-Headers": "Authorization, Content-Type"
         })
         return resp
+
+
+class DownloadHistoryCSV(BaseClassWithCORS):
+    def get(self, start, end):
+        data_db_host = config.db_config[config.config_name]["data_db"]["host"]
+        data_db_port = config.db_config[config.config_name]["data_db"]["port"]
+        data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
+        data_db = data_db_mongo[config.db_config[config.config_name]["data_db"]["db"]]
+        trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
+        raw_col = config.db_config[config.config_name]["data_db"]["raw_data_col"]
+        try:
+            auth_headers = flask.request.headers.get("Authorization")
+            method, token = auth_headers.split(" ")
+            checked = factory.auth_db["token"].find({"token": token})
+            if checked.count(True) > 0 :
+                factory.auth_db["token"].update_one(
+                    {"token": token},
+                    {
+                        "$inc": {
+                            "expir": 604800000
+                        }
+                    }
+                )
+                raw_records = data_db[raw_col].find({
+                    "$and": [{"timestamp": {"$gte": start}},
+                             {"timestamp": {"$lte": end}}]}
+                ).sort("_id", -1)
+                trans_records = data_db[trans_col].find({
+                    "$and": [{"timestamp": {"$gte": start}},
+                             {"timestamp": {"$lte": end}}]}
+                ).sort("_id", -1)
+                csv_io = StringIO.StringIO()
+                for i, (raw_json, trans_json) in enumerate(zip(raw_records, trans_records)):
+                    if i==0:
+                        header = ["timestamp"]
+                        for sensor, sensor_json in raw_json["sensors"]:
+                            header.append(sensor_json["label"])
+                        for channel, channel_json in trans_json["channel"]:
+                            header.append(channel_json["label"]+" "+channel_json["unit"])
+                        csv_io.write(",".join(header)+"\n")
+                    row = [raw_json["timestamp"]]
+                    for sensor, sensor_json in raw_json["sensors"]:
+                        row.append(sensor_json["value"])
+                    for channel, channel_json in trans_json["channel"]:
+                        row.append(channel_json["value"])
+                    csv_io.write(",".join(row)+"\n")
+                resp = flask.make_response(csv_io)
+                resp.headers.extend({
+                    "Access-Control-Allow-Origin": "*",
+                    "Content-Disposition": "attachment; filename=export.csv",
+                    "Content-Type": "text/csv"
+                })
+                return resp
+        except:
+            pass
 
 
 class RecordSeries(BaseClassWithCORS):
@@ -33,7 +90,7 @@ class RecordSeries(BaseClassWithCORS):
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
             checked = factory.auth_db["token"].find({"token": token})
-            if checked.count(True)>0:
+            if checked.count(True) > 0:
                 factory.auth_db["token"].update_one(
                     {"token": token},
                     {
@@ -88,7 +145,7 @@ class LatestRecord(BaseClassWithCORS):
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
             checked = factory.auth_db["token"].find({"token": token})
-            if checked.count(True)>0:
+            if checked.count(True) > 0:
                 factory.auth_db["token"].update_one(
                     {"token": token},
                     {
@@ -147,14 +204,27 @@ class Record(BaseClassWithCORS):
                 )
                 raw_json = request_data["data"]
                 raw_insert_result = data_db[raw_col].insert_one(raw_json)
-                # windows size 100
-                # WINDOW_SIZE = 60
-                # window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE-1].limit(WINDOW_SIZE-1)
+                # windows size 60
+                WINDOW_SIZE = 60
+                window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE - 1].limit(WINDOW_SIZE - 1)
                 print "sofarsogood"
-                last_trans_doc = data_db[trans_col].find().sort("_id",-1)[:1]
+                last_trans_doc = data_db[trans_col].find().sort("_id", -1)[:1]
                 print last_trans_doc.count()
-                if last_trans_doc.count()==0:
-                    trans_json = config.transform_data(raw_json)
+                if window.count(True) < WINDOW_SIZE - 1:
+                    resp_data = {
+                        "err": "True",
+                        "message": "not enough data for smoothing",
+                        "result": {
+                            "raw_insert_id": raw_insert_result.inserted_id,
+                        }
+                    }
+                    resp = flask.make_response(dumps(resp_data))
+                    resp.headers.extend({
+                        "Access-Control-Allow-Origin": "*"
+                    })
+                    return resp
+                if last_trans_doc.count() == 0:
+                    trans_json = config.transform_data(raw_json, window)
                     trans_insert_result = data_db[trans_col].insert_one(trans_json)
                     resp_data = {
                         "err": "False",
@@ -169,20 +239,7 @@ class Record(BaseClassWithCORS):
                         "Access-Control-Allow-Origin": "*"
                     })
                     return resp
-                # if window.count(True) < WINDOW_SIZE-1:
-                #     resp_data = {
-                #         "err": "True",
-                #         "message": "not enough data for smoothing",
-                #         "result": {
-                #             "raw_insert_id": raw_insert_result.inserted_id,
-                #         }
-                #     }
-                #     resp = flask.make_response(dumps(resp_data))
-                #     resp.headers.extend({
-                #         "Access-Control-Allow-Origin": "*"
-                #     })
-                #     return resp
-                trans_json = config.transform_data(raw_json, last_trans_doc[0])
+                trans_json = config.transform_data(raw_json, window, last_trans_doc[0])
                 trans_insert_result = data_db[trans_col].insert_one(trans_json)
                 resp_data = {
                     "err": "False",
@@ -205,9 +262,9 @@ class Record(BaseClassWithCORS):
             return resp
         except pymongo.errors.OperationFailure, err:
             return {
-               "err": "True",
-               "message": "Failed post data",
-               "result": err.details
+                "err": "True",
+                "message": "Failed post data",
+                "result": err.details
             }
         except Exception, err:
             resp_data = {
@@ -228,7 +285,7 @@ class AuthenticateByPassword(BaseClassWithCORS):
             request_data = loads(flask.request.data)
             user = factory.auth_db["user"].find_one({"un": request_data["un"]})
             checked = werkzeug.security.check_password_hash(user["pwd"], request_data["pwd"])
-            if checked>0:
+            if checked > 0:
                 token = uuid.uuid4().hex
                 now = datetime.datetime.utcnow()
                 expir = datetime.timedelta(days=7)
@@ -278,7 +335,7 @@ class LatestRecordSet(BaseClassWithCORS):
         auth_headers = flask.request.headers.get("Authorization")
         method, token = auth_headers.split(" ")
         checked = factory.auth_db["token"].find({"token": token})
-        if checked.count(True)>0:
+        if checked.count(True) > 0:
             factory.auth_db["token"].update_one(
                 {"token": token},
                 {

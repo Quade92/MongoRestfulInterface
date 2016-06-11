@@ -9,4 +9,5 @@ def init_route():
     factory.api.add_resource(resources.RecordSeries, "/record-series/<int:start>/<int:end>")
     factory.api.add_resource(resources.AuthenticateByPassword, "/authenticate")
     factory.api.add_resource(resources.Register, "/register")
+    factory.api.add_resource(resources.DownloadHistoryCSV, "/history-csv/<int:start>/<int:end>")
     return 0
