@@ -10,6 +10,7 @@ import werkzeug.security
 import uuid
 import datetime
 import StringIO
+import zlib
 
 
 class BaseClassWithCORS(flask_restful.Resource):
@@ -128,7 +129,7 @@ class RecordSeries(BaseClassWithCORS):
                     "message": "Please login",
                     "result": ""
                 }
-            resp = flask.make_response(dumps(resp_data))
+            resp = flask.make_response(zlib.compress(dumps(resp_data)))
             resp.headers.extend({
                 "Access-Control-Allow-Origin": "*"
             })
