@@ -148,13 +148,12 @@ class Record(BaseClassWithCORS):
                 raw_json = request_data["data"]
                 raw_insert_result = data_db[raw_col].insert_one(raw_json)
                 # windows size 100
-                # WINDOW_SIZE = 60
-                # window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE-1].limit(WINDOW_SIZE-1)
-                print "sofarsogood"
+                WINDOW_SIZE = 15
+                window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE-1].limit(WINDOW_SIZE-1)
                 last_trans_doc = data_db[trans_col].find().sort("_id",-1)[:1]
                 print last_trans_doc.count()
                 if last_trans_doc.count()==0:
-                    trans_json = config.transform_data(raw_json)
+                    trans_json = config.transform_data(raw_json, window)
                     trans_insert_result = data_db[trans_col].insert_one(trans_json)
                     resp_data = {
                         "err": "False",
@@ -182,7 +181,7 @@ class Record(BaseClassWithCORS):
                 #         "Access-Control-Allow-Origin": "*"
                 #     })
                 #     return resp
-                trans_json = config.transform_data(raw_json, last_trans_doc[0])
+                trans_json = config.transform_data(raw_json, window, last_trans_doc[0])
                 trans_insert_result = data_db[trans_col].insert_one(trans_json)
                 resp_data = {
                     "err": "False",
