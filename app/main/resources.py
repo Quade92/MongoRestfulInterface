@@ -63,7 +63,7 @@ class DownloadHistoryCSV(BaseClassWithCORS):
                 csv_io.write(",".join(header) + "\n")
                 print "HEADER"
                 for raw_json, trans_json in zip(raw_records, trans_records):
-                    row = [str(raw_json["timestamp"])]
+                    row = [datetime.datetime.fromtimestamp(raw_json["timestamp"]/1000).strftime("%Y-%m-%d %H:%M:%S")]
                     for sensor in raw_json["sensors"]:
                         row.append(str(raw_json["sensors"][sensor]["value"]))
                     for channel in trans_json["channel"]:
