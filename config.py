@@ -32,8 +32,8 @@ def transform_data(raw_json, window, last_trans_doc=None):
 
     AN1_sum = sum(map(lambda json: json["sensors"]["AN1"]["value"], copy.deepcopy(window)))
     AN2_sum = sum(map(lambda json: json["sensors"]["AN2"]["value"], copy.deepcopy(window)))
-    AN7_sum = sum(map(lambda json: json["sensors"]["AN7"]["value"], copy.deepcopy(window)))
-    AN8_sum = sum(map(lambda json: json["sensors"]["AN8"]["value"], copy.deepcopy(window)))
+    AN5_sum = sum(map(lambda json: json["sensors"]["AN5"]["value"], copy.deepcopy(window)))
+    AN6_sum = sum(map(lambda json: json["sensors"]["AN6"]["value"], copy.deepcopy(window)))
 
     # trans_json["channel"]["CH6"] = {
     trans_json["channel"]["CH1"] = {
@@ -41,8 +41,8 @@ def transform_data(raw_json, window, last_trans_doc=None):
         "label": new_labels[4],
         "unit": u"V",
         # "value": A_voltage if A_voltage > 0 else 0
-        # "value": 26.073 * (AN1_sum + raw_json["sensors"]["AN1"]["value"])/(window.count(True)+1) - 1.1159
-        "value": 1.03 * (AN1_sum + raw_json["sensors"]["AN1"]["value"])/(window.count(True)+1)
+        "value": 1.03 * (26.073 * (AN1_sum + raw_json["sensors"]["AN1"]["value"])/(window.count(True)+1) - 1.1159)
+        # "value": 1.03 * (AN1_sum + raw_json["sensors"]["AN1"]["value"])/(window.count(True)+1)
     }
     # trans_json["channel"]["CH5"] = {
     trans_json["channel"]["CH5"] = {
@@ -50,28 +50,28 @@ def transform_data(raw_json, window, last_trans_doc=None):
         "label": new_labels[5],
         "unit": u"V",
         # "value": B_voltage if B_voltage > 0 else 0
-        # "value": 26.073 * (AN2_sum + raw_json["sensors"]["AN2"]["value"])/(window.count(True)+1) - 1.1159
-        "value": 1.03 * (AN2_sum + raw_json["sensors"]["AN2"]["value"])/(window.count(True)+1)
+        "value": 1.03 * (26.073 * (AN2_sum + raw_json["sensors"]["AN2"]["value"])/(window.count(True)+1) - 1.1159)
+        # "value": 1.03 * (AN2_sum + raw_json["sensors"]["AN2"]["value"])/(window.count(True)+1)
     }
-    A_id = (AN7_sum + raw_json["sensors"]["AN7"]["value"])/(window.count(True)+1)
+    A_id = (AN5_sum + raw_json["sensors"]["AN5"]["value"])/(window.count(True)+1)
     # trans_json["channel"]["CH7"] = {
     trans_json["channel"]["CH2"] = {
         # A current
         "label": new_labels[6],
         "unit": u"A",
-        # "value": 0.25*A_id**3-1.71*A_id**2+5.07*A_id if A_id > 0.04 else 0
+        "value": 0.99* (0.25*A_id**3-1.71*A_id**2+5.07*A_id)+0.19 if A_id > 0.04 else 0
         # "value": -0.8861 * A_id ** 2 + 3.7949 * A_id - 0.0139
-        "value": 0.99 * A_id + 0.19 if A_id > 0.04 else 0
+        # "value": 0.99 * A_id + 0.19 if A_id > 0.04 else 0
     }
-    B_id = (AN8_sum + raw_json["sensors"]["AN8"]["value"])/(window.count(True)+1)
+    B_id = (AN6_sum + raw_json["sensors"]["AN6"]["value"])/(window.count(True)+1)
     # trans_json["channel"]["CH8"] = {
     trans_json["channel"]["CH6"] = {
         # B current
         "label": new_labels[7],
         "unit": u"A",
         # "value": -0.8861 * B_id ** 2 + 3.7949 * B_id - 0.0139
-        # "value": 0.25 * B_id ** 3 - 1.71 * B_id ** 2 + 5.07 * B_id if B_id > 0.04 else 0
-        "value": 0.99 * B_id + 0.19 if B_id > 0.04 else 0
+        "value": 0.99 * (0.25 * B_id ** 3 - 1.71 * B_id ** 2 + 5.07 * B_id) +0.19 if B_id > 0.04 else 0
+        # "value": 0.99 * B_id + 0.19 if B_id > 0.04 else 0
     }
     # trans_json["channel"]["CH9"] = {
     trans_json["channel"]["CH3"] = {

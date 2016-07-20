@@ -219,26 +219,12 @@ class Record(BaseClassWithCORS):
                 )
                 raw_json = request_data["data"]
                 raw_insert_result = data_db[raw_col].insert_one(raw_json)
-                # windows size 60
-                WINDOW_SIZE = 60
-                window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE - 1].limit(WINDOW_SIZE - 1)
-                print "sofarsogood"
-                last_trans_doc = data_db[trans_col].find().sort("_id", -1)[:1]
+                # windows size 100
+                WINDOW_SIZE = 15
+                window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE-1].limit(WINDOW_SIZE-1)
+                last_trans_doc = data_db[trans_col].find().sort("_id",-1)[:1]
                 print last_trans_doc.count()
-                if window.count(True) < WINDOW_SIZE - 1:
-                    resp_data = {
-                        "err": "True",
-                        "message": "not enough data for smoothing",
-                        "result": {
-                            "raw_insert_id": raw_insert_result.inserted_id,
-                        }
-                    }
-                    resp = flask.make_response(dumps(resp_data))
-                    resp.headers.extend({
-                        "Access-Control-Allow-Origin": "*"
-                    })
-                    return resp
-                if last_trans_doc.count() == 0:
+                if last_trans_doc.count()==0:
                     trans_json = config.transform_data(raw_json, window)
                     trans_insert_result = data_db[trans_col].insert_one(trans_json)
                     resp_data = {
@@ -254,6 +240,19 @@ class Record(BaseClassWithCORS):
                         "Access-Control-Allow-Origin": "*"
                     })
                     return resp
+                # if window.count(True) < WINDOW_SIZE-1:
+                #     resp_data = {
+                #         "err": "True",
+                #         "message": "not enough data for smoothing",
+                #         "result": {
+                #             "raw_insert_id": raw_insert_result.inserted_id,
+                #         }
+                #     }
+                #     resp = flask.make_response(dumps(resp_data))
+                #     resp.headers.extend({
+                #         "Access-Control-Allow-Origin": "*"
+                #     })
+                #     return resp
                 trans_json = config.transform_data(raw_json, window, last_trans_doc[0])
                 trans_insert_result = data_db[trans_col].insert_one(trans_json)
                 resp_data = {
