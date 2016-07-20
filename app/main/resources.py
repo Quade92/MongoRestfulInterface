@@ -11,6 +11,8 @@ import uuid
 import datetime
 import StringIO
 import zlib
+import StringIO
+import gzip
 
 
 class BaseClassWithCORS(flask_restful.Resource):
@@ -129,9 +131,16 @@ class RecordSeries(BaseClassWithCORS):
                     "message": "Please login",
                     "result": ""
                 }
-            resp = flask.make_response(zlib.compress(dumps(resp_data)))
+            gzip_buffer = StringIO.StringIO()
+            gzip_file = gzip.GzipFile(mode="wb", fileobj=gzip_buffer)
+            gzip_file.write(dumps(resp_data))
+            gzip_file.close()
+            resp = flask.make_response(gzip_buffer.getvalue())
             resp.headers.extend({
-                "Access-Control-Allow-Origin": "*"
+                "Access-Control-Allow-Origin": "*",
+                "Content-Encoding": "gzip",
+                "Vary": "Accept-Encoding",
+                "Content-Length": len(resp.data)
             })
             return resp
         except pymongo.errors.OperationFailure, err:
