@@ -34,7 +34,6 @@ class DownloadHistoryCSV(BaseClassWithCORS):
         data_db = data_db_mongo[config.db_config[config.config_name]["data_db"]["db"]]
         trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
         raw_col = config.db_config[config.config_name]["data_db"]["raw_data_col"]
-        print "INIT"
         try:
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
@@ -56,7 +55,6 @@ class DownloadHistoryCSV(BaseClassWithCORS):
                     "$and": [{"timestamp": {"$gte": start}},
                              {"timestamp": {"$lte": end}}]}
                 )
-                print "FIND"
                 csv_io = StringIO.StringIO()
                 header = ["timestamp"]
                 for sensor in raw_records[0]["sensors"]:
@@ -64,7 +62,6 @@ class DownloadHistoryCSV(BaseClassWithCORS):
                 for channel in trans_records[0]["channel"]:
                     header.append(channel)
                 csv_io.write(",".join(header) + "\n")
-                print "HEADER"
                 for raw_json, trans_json in zip(raw_records, trans_records):
                     row = [datetime.datetime.fromtimestamp(raw_json["timestamp"]/1000).strftime("%Y-%m-%d %H:%M:%S")]
                     for sensor in raw_json["sensors"]:
@@ -72,7 +69,6 @@ class DownloadHistoryCSV(BaseClassWithCORS):
                     for channel in trans_json["channel"]:
                         row.append(str(trans_json["channel"][channel]["value"]))
                     csv_io.write(",".join(row) + "\n")
-                print "CONTENT"
                 resp = flask.make_response(csv_io.getvalue())
                 resp.headers.extend({
                     "Access-Control-Allow-Origin": "*",
@@ -80,7 +76,6 @@ class DownloadHistoryCSV(BaseClassWithCORS):
                     # "Content-Type": "text/csv"
                 })
                 resp.headers["Content-Type"] = "text/csv; charset=utf-8"
-                print "RESP"
                 return resp
         except Exception, err:
             resp_data = {
@@ -232,7 +227,6 @@ class Record(BaseClassWithCORS):
                 WINDOW_SIZE = 15
                 window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE-1].limit(WINDOW_SIZE-1)
                 last_trans_doc = data_db[trans_col].find().sort("_id",-1)[:1]
-                print last_trans_doc.count()
                 if last_trans_doc.count()==0:
                     trans_json = config.transform_data(raw_json, window)
                     trans_insert_result = data_db[trans_col].insert_one(trans_json)
