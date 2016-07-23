@@ -151,7 +151,6 @@ class Record(BaseClassWithCORS):
                 WINDOW_SIZE = 15
                 window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE-1].limit(WINDOW_SIZE-1)
                 last_trans_doc = data_db[trans_col].find().sort("_id",-1)[:1]
-                print last_trans_doc.count()
                 if last_trans_doc.count()==0:
                     trans_json = config.transform_data(raw_json, window)
                     trans_insert_result = data_db[trans_col].insert_one(trans_json)

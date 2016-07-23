@@ -74,14 +74,14 @@ def transform_data(raw_json, window, last_trans_doc=None):
         # "value": 0.99 * B_id + 0.19 if B_id > 0.04 else 0
     }
     # trans_json["channel"]["CH9"] = {
-    trans_json["channel"]["CH3"] = {
+    trans_json["channel"]["CH7"] = {
         # A power
         "label": new_labels[8],
         "unit": u"W",
         "value": 0.7 * 1.732 * trans_json["channel"]["CH1"]["value"] * trans_json["channel"]["CH2"]["value"]
     }
     # trans_json["channel"]["CH10"] = {
-    trans_json["channel"]["CH7"] = {
+    trans_json["channel"]["CH3"] = {
         # B power
         "label": new_labels[9],
         "unit": u"W",
@@ -90,7 +90,7 @@ def transform_data(raw_json, window, last_trans_doc=None):
     A_sp1 = trans_json["channel"]["CH1"]["value"] / 390.0 * 70
     A_sp2 = 1.74 * trans_json["channel"]["CH3"]["value"] / 1000
     # trans_json["channel"]["CH1"] = {
-    trans_json["channel"]["CH4"] = {
+    trans_json["channel"]["CH8"] = {
         # A speed
         "label": new_labels[0],
         "unit": u"rpm",
@@ -99,7 +99,7 @@ def transform_data(raw_json, window, last_trans_doc=None):
     B_sp1 = trans_json["channel"]["CH5"]["value"] / 390.0 * 70
     B_sp2 = 1.74 * trans_json["channel"]["CH7"]["value"] / 1000
     # trans_json["channel"]["CH2"] = {
-    trans_json["channel"]["CH8"] = {
+    trans_json["channel"]["CH4"] = {
         # B speed
         "label": new_labels[1],
         "unit": u"rpm",
