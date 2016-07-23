@@ -16,9 +16,20 @@ db_config = {
             "db": "auth_db",
             "host": "localhost",
             "port": 27998
+        },
+        "api": {
+            "host": "0.0.0.0",
+            "port": "5000"
         }
     }
 }
+
+db_api_servers = [
+    {
+        "host": "123.45.80.4",
+        "port": "5000"
+    }
+]
 
 
 def transform_data(raw_json, window, last_trans_doc=None):

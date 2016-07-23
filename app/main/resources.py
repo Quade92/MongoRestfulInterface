@@ -406,3 +406,17 @@ class Register(BaseClassWithCORS):
                 "message": "Failed registering",
                 "result": err.details
             }
+
+
+class HeartBeat(object):
+    def get(self):
+        resp_data = {
+            "err": "False",
+            "message": "Online",
+            "result": ""
+        }
+        resp = flask.make_response(dumps(resp_data))
+        resp.headers.extend({
+            "Content-Type": "application/json; charset=utf-8"
+        })
+        return resp
