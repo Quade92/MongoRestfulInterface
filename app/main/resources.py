@@ -10,9 +10,8 @@ import werkzeug.security
 import uuid
 import datetime
 import StringIO
-import zlib
-import StringIO
 import gzip
+import ha
 
 
 class BaseClassWithCORS(flask_restful.Resource):
@@ -73,7 +72,6 @@ class DownloadHistoryCSV(BaseClassWithCORS):
                 resp.headers.extend({
                     "Access-Control-Allow-Origin": "*",
                     "Content-Disposition": "attachment; filename=export.csv"
-                    # "Content-Type": "text/csv"
                 })
                 resp.headers["Content-Type"] = "text/csv; charset=utf-8"
                 return resp
@@ -410,13 +408,13 @@ class Register(BaseClassWithCORS):
 
 class HeartBeat(object):
     def get(self):
+        client_ip = flask.request.environ.get('REMOTE_ADDR')
+        client_port = flask.request.environ.get('REMOTE_PORT')
+        ha.status[client_ip+":"+client_port] = "online"
         resp_data = {
             "err": "False",
             "message": "Online",
             "result": ""
         }
         resp = flask.make_response(dumps(resp_data))
-        resp.headers.extend({
-            "Content-Type": "application/json; charset=utf-8"
-        })
         return resp
