@@ -12,6 +12,17 @@ import datetime
 import StringIO
 import gzip
 import ha
+from bson.json_util import loads
+
+
+def with_restful_servers_status(resp_func):
+    def wrapper(*args, **kwargs):
+        resp = resp_func(args, kwargs)
+        data = loads(resp.data)
+        data.update({"status":ha.status})
+        resp.data = data
+        return resp
+    return wrapper
 
 
 class BaseClassWithCORS(flask_restful.Resource):
@@ -89,6 +100,7 @@ class DownloadHistoryCSV(BaseClassWithCORS):
 
 
 class RecordSeries(BaseClassWithCORS):
+    @with_restful_servers_status
     def get(self, start, end):
         data_db_host = config.db_config[config.config_name]["data_db"]["host"]
         data_db_port = config.db_config[config.config_name]["data_db"]["port"]
@@ -151,6 +163,7 @@ class RecordSeries(BaseClassWithCORS):
 
 
 class LatestRecord(BaseClassWithCORS):
+    @with_restful_servers_status
     def get(self):
         data_db_host = config.db_config[config.config_name]["data_db"]["host"]
         data_db_port = config.db_config[config.config_name]["data_db"]["port"]
@@ -197,6 +210,7 @@ class LatestRecord(BaseClassWithCORS):
 
 
 class Record(BaseClassWithCORS):
+    @with_restful_servers_status
     def post(self):
         try:
             data_db_host = config.db_config[config.config_name]["data_db"]["host"]
@@ -295,6 +309,7 @@ class Record(BaseClassWithCORS):
 
 
 class AuthenticateByPassword(BaseClassWithCORS):
+    @with_restful_servers_status
     def post(self):
         try:
             request_data = loads(flask.request.data)
@@ -339,6 +354,7 @@ class AuthenticateByPassword(BaseClassWithCORS):
 
 
 class LatestRecordSet(BaseClassWithCORS):
+    @with_restful_servers_status
     def get(self, amount):
         data_db_host = config.db_config[config.config_name]["data_db"]["host"]
         data_db_port = config.db_config[config.config_name]["data_db"]["port"]
