@@ -12,7 +12,6 @@ import datetime
 import StringIO
 import gzip
 import ha
-from bson.json_util import loads
 
 
 def with_restful_servers_status(resp_func):
@@ -38,13 +37,13 @@ class BaseClassWithCORS(flask_restful.Resource):
 
 class DownloadHistoryCSV(BaseClassWithCORS):
     def get(self, start, end):
-        data_db_host = config.db_config[config.config_name]["data_db"]["host"]
-        data_db_port = config.db_config[config.config_name]["data_db"]["port"]
-        data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
-        data_db = data_db_mongo[config.db_config[config.config_name]["data_db"]["db"]]
-        trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
-        raw_col = config.db_config[config.config_name]["data_db"]["raw_data_col"]
-        try:
+        def generate(start, end):
+            data_db_host = config.db_config[config.config_name]["data_db"]["host"]
+            data_db_port = config.db_config[config.config_name]["data_db"]["port"]
+            data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
+            data_db = data_db_mongo[config.db_config[config.config_name]["data_db"]["db"]]
+            trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
+            raw_col = config.db_config[config.config_name]["data_db"]["raw_data_col"]
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
             checked = factory.auth_db["token"].find({"token": token})
@@ -65,38 +64,24 @@ class DownloadHistoryCSV(BaseClassWithCORS):
                     "$and": [{"timestamp": {"$gte": start}},
                              {"timestamp": {"$lte": end}}]}
                 )
-                csv_io = StringIO.StringIO()
+                csv_lines = []
                 header = ["timestamp"]
                 for sensor in raw_records[0]["sensors"]:
                     header.append(sensor)
                 for channel in trans_records[0]["channel"]:
                     header.append(channel)
-                csv_io.write(",".join(header) + "\n")
+                csv_lines.append(",".join(header) + "\n")
                 for raw_json, trans_json in zip(raw_records, trans_records):
                     row = [datetime.datetime.fromtimestamp(raw_json["timestamp"]/1000).strftime("%Y-%m-%d %H:%M:%S")]
                     for sensor in raw_json["sensors"]:
                         row.append(str(raw_json["sensors"][sensor]["value"]))
                     for channel in trans_json["channel"]:
                         row.append(str(trans_json["channel"][channel]["value"]))
-                    csv_io.write(",".join(row) + "\n")
-                resp = flask.make_response(csv_io.getvalue())
-                resp.headers.extend({
-                    "Access-Control-Allow-Origin": "*",
-                    "Content-Disposition": "attachment; filename=export.csv"
-                })
-                resp.headers["Content-Type"] = "text/csv; charset=utf-8"
-                return resp
-        except Exception, err:
-            resp_data = {
-                "err": "True",
-                "message": str(err),
-                "result": ""
-            }
-            resp = flask.make_response(dumps(resp_data))
-            resp.headers.extend({
-                "Access-Control-Allow-Origin": "*"
-            })
-            return resp
+                    csv_lines.append(",".join(row) + "\n")
+                for line in csv_lines:
+                    yield line
+        return flask.Response(generate(start,end), mimetype="text/csv")
+
 
 
 class RecordSeries(BaseClassWithCORS):
