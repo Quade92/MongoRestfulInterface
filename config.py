@@ -110,14 +110,16 @@ def transform_data(raw_json, window, last_trans_doc=None):
         # current speed
         "label": new_labels[2],
         "unit": u"m/s",
-        "value": (raw_json["sensors"]["AN3"]["value"] - 4.0) / 16.0 * 7.0
+        # "value": (raw_json["sensors"]["AN3"]["value"] - 4.0) / 16.0 * 0.7
+        "value": raw_json["sensors"]["AN4"]["value"]*0.3131-1.2392
     }
     # trans_json["channel"]["CH4"] = {
     trans_json["channel"]["CH10"] = {
         # current direction
         "label": new_labels[3],
         "unit": u"度",
-        "value": (raw_json["sensors"]["AN4"]["value"] - 4.0) / 16.0 * 360.0
+        # "value": (raw_json["sensors"]["AN4"]["value"] - 4.0) / 16.0 * 360.0
+        "value": raw_json["sensors"]["AN3"]["value"]*22.437-87.596
     }
     if last_trans_doc:
         trans_json["channel"]["CH11"] = {

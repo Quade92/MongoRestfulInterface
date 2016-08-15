@@ -3,14 +3,14 @@ import flask
 import flask_restful
 import flask_pymongo
 import pymongo.errors
+from flask import Response
+
 import factory
 import config
 from bson.json_util import loads, dumps
 import werkzeug.security
 import uuid
 import datetime
-import StringIO
-import zlib
 import StringIO
 import gzip
 
@@ -55,26 +55,26 @@ class DownloadHistoryCSV(BaseClassWithCORS):
                     "$and": [{"timestamp": {"$gte": start}},
                              {"timestamp": {"$lte": end}}]}
                 )
-                csv_io = StringIO.StringIO()
-                header = ["timestamp"]
-                for sensor in raw_records[0]["sensors"]:
-                    header.append(sensor)
-                for channel in trans_records[0]["channel"]:
-                    header.append(channel)
-                csv_io.write(",".join(header) + "\n")
-                for raw_json, trans_json in zip(raw_records, trans_records):
-                    row = [datetime.datetime.fromtimestamp(raw_json["timestamp"]/1000).strftime("%Y-%m-%d %H:%M:%S")]
-                    for sensor in raw_json["sensors"]:
-                        row.append(str(raw_json["sensors"][sensor]["value"]))
-                    for channel in trans_json["channel"]:
-                        row.append(str(trans_json["channel"][channel]["value"]))
-                    csv_io.write(",".join(row) + "\n")
-                resp = flask.make_response(csv_io.getvalue())
-                resp.headers.extend({
-                    "Access-Control-Allow-Origin": "*",
-                    "Content-Disposition": "attachment; filename=export.csv"
-                    # "Content-Type": "text/csv"
-                })
+
+                def generator(raw_records, trans_records):
+                    header = ["timestamp"]
+                    for sensor in raw_records[0]["sensors"]:
+                        header.append(sensor)
+                    for channel in trans_records[0]["channel"]:
+                        header.append(channel)
+                    yield ",".join(header) + "\n"
+                    for raw_json, trans_json in zip(raw_records, trans_records):
+                        row = [
+                            datetime.datetime.fromtimestamp(raw_json["timestamp"] / 1000).strftime("%Y-%m-%d %H:%M:%S")]
+                        for sensor in raw_json["sensors"]:
+                            row.append(str(raw_json["sensors"][sensor]["value"]))
+                        for channel in trans_json["channel"]:
+                            row.append(str(trans_json["channel"][channel]["value"]))
+                        yield ",".join(row) + "\n"
+
+                resp = Response(generator(raw_records=raw_records, trans_records=trans_records))
+                resp.headers["Access-Control-Allow-Origin"] = "*"
+                resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
                 resp.headers["Content-Type"] = "text/csv; charset=utf-8"
                 return resp
         except Exception, err:
@@ -225,9 +225,9 @@ class Record(BaseClassWithCORS):
                 raw_insert_result = data_db[raw_col].insert_one(raw_json)
                 # windows size 100
                 WINDOW_SIZE = 15
-                window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE-1].limit(WINDOW_SIZE-1)
-                last_trans_doc = data_db[trans_col].find().sort("_id",-1)[:1]
-                if last_trans_doc.count()==0:
+                window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE - 1].limit(WINDOW_SIZE - 1)
+                last_trans_doc = data_db[trans_col].find().sort("_id", -1)[:1]
+                if last_trans_doc.count() == 0:
                     trans_json = config.transform_data(raw_json, window)
                     trans_insert_result = data_db[trans_col].insert_one(trans_json)
                     resp_data = {
