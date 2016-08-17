@@ -73,6 +73,7 @@ class DownloadHistoryCSV(BaseClassWithCORS):
                         yield ",".join(row) + "\n"
 
                 resp = Response(generator(raw_records=raw_records, trans_records=trans_records))
+                resp.headers["Content-Length"] = resp.calculate_content_length()
                 resp.headers["Access-Control-Allow-Origin"] = "*"
                 resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
                 resp.headers["Content-Type"] = "text/csv; charset=utf-8"
