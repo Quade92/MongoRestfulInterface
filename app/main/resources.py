@@ -28,12 +28,9 @@ class BaseClassWithCORS(flask_restful.Resource):
 
 class DownloadHistoryCSV(BaseClassWithCORS):
     def get(self, start, end):
-        data_db_host = config.db_config[config.config_name]["data_db"]["host"]
-        data_db_port = config.db_config[config.config_name]["data_db"]["port"]
-        data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
-        data_db = data_db_mongo[config.db_config[config.config_name]["data_db"]["db"]]
-        trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
-        raw_col = config.db_config[config.config_name]["data_db"]["raw_data_col"]
+        data_db = factory.data_db
+        raw_col = factory.raw_col
+        trans_col = factory.trans_col
         try:
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
@@ -93,12 +90,9 @@ class DownloadHistoryCSV(BaseClassWithCORS):
 
 class RecordSeries(BaseClassWithCORS):
     def get(self, start, end):
-        data_db_host = config.db_config[config.config_name]["data_db"]["host"]
-        data_db_port = config.db_config[config.config_name]["data_db"]["port"]
-        data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
-        db = config.db_config[config.config_name]["data_db"]["db"]
-        data_db = data_db_mongo[db]
-        trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
+        data_db = factory.data_db
+        raw_col = factory.raw_col
+        trans_col = factory.trans_col
         try:
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
@@ -155,12 +149,9 @@ class RecordSeries(BaseClassWithCORS):
 
 class LatestRecord(BaseClassWithCORS):
     def get(self):
-        data_db_host = config.db_config[config.config_name]["data_db"]["host"]
-        data_db_port = config.db_config[config.config_name]["data_db"]["port"]
-        data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
-        db = config.db_config[config.config_name]["data_db"]["db"]
-        data_db = data_db_mongo[db]
-        trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
+        data_db = factory.data_db
+        raw_col = factory.raw_col
+        trans_col = factory.trans_col
         try:
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
@@ -202,13 +193,9 @@ class LatestRecord(BaseClassWithCORS):
 class Record(BaseClassWithCORS):
     def post(self):
         try:
-            data_db_host = config.db_config[config.config_name]["data_db"]["host"]
-            data_db_port = config.db_config[config.config_name]["data_db"]["port"]
-            data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
-            db = config.db_config[config.config_name]["data_db"]["db"]
-            data_db = data_db_mongo[db]
-            raw_col = config.db_config[config.config_name]["data_db"]["raw_data_col"]
-            trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
+            data_db = factory.data_db
+            raw_col = factory.raw_col
+            trans_col = factory.trans_col
             auth_headers = flask.request.headers.get("Authorization")
             method, token = auth_headers.split(" ")
             request_data = loads(flask.request.data)
@@ -227,7 +214,7 @@ class Record(BaseClassWithCORS):
                 # windows size 100
                 WINDOW_SIZE = 15
                 window = data_db[raw_col].find().sort("_id", -1)[:WINDOW_SIZE - 1].limit(WINDOW_SIZE - 1)
-                if window.count(True) < WINDOW_SIZE-1:
+                if window.count(True) < WINDOW_SIZE - 1:
                     resp_data = {
                         "err": "True",
                         "message": "not enough data for smoothing",
@@ -343,12 +330,9 @@ class AuthenticateByPassword(BaseClassWithCORS):
 
 class LatestRecordSet(BaseClassWithCORS):
     def get(self, amount):
-        data_db_host = config.db_config[config.config_name]["data_db"]["host"]
-        data_db_port = config.db_config[config.config_name]["data_db"]["port"]
-        data_db_mongo = flask_pymongo.MongoClient(host=data_db_host, port=data_db_port)
-        db = config.db_config[config.config_name]["data_db"]["db"]
-        data_db = data_db_mongo[db]
-        trans_col = config.db_config[config.config_name]["data_db"]["trans_data_col"]
+        data_db = factory.data_db
+        raw_col = factory.raw_col
+        trans_col = factory.trans_col
 
         auth_headers = flask.request.headers.get("Authorization")
         method, token = auth_headers.split(" ")
